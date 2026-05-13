@@ -209,3 +209,95 @@ GitHub Actions автоматически:
 3. выполняет deployment внутри LXC контейнера
 4. обновляет контейнеры через Docker Compose
 
+### backend.yml:
+```yaml
+name: Backend CI/CD
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login Docker Hub
+        run: echo "${{ secrets.DOCKER_PASS }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
+
+      - name: Build image
+        run: docker build -t ${{ secrets.DOCKER_USER }}/kanban-backend:latest .
+
+      - name: Push image
+        run: docker push ${{ secrets.DOCKER_USER }}/kanban-backend:latest
+
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via Proxmox → LXC
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROXMOX_HOST }}
+          username: root
+          key: ${{ secrets.SSH_KEY }}
+
+          script: |
+            pct exec 140 -- bash -c "
+              cd /opt/kanban/task7 &&
+              docker compose pull &&
+              docker compose up -d
+            "
+```
+
+### frontend.yml
+
+```yaml
+name: Frontend CI/CD
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login Docker Hub
+        run: echo "${{ secrets.DOCKER_PASS }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
+
+      - name: Build image
+        run: docker build -t ${{ secrets.DOCKER_USER }}/kanban-frontend:latest .
+
+      - name: Push image
+        run: docker push ${{ secrets.DOCKER_USER }}/kanban-frontend:latest
+
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via Proxmox → LXC
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROXMOX_HOST }}
+          username: root
+          key: ${{ secrets.SSH_KEY }}
+
+          script: |
+            pct exec 140 -- bash -c "
+              cd /opt/kanban/task7 &&
+              docker compose pull &&
+              docker compose up -d
+            "
+```
