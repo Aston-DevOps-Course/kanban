@@ -22,12 +22,10 @@ https://github.com/Aston-DevOps-Course/kanban-frontend
 
 ---
 
----
-
 # Видео-презентация
 
 Ссылка на видео-презентацию работы проекта:
-
+https://cloud.triniss.ru/s/bAEaKsWcdnnM3nP
 
 ---
 # Выполненные задачи по данному проекту (6-8)
@@ -150,7 +148,7 @@ Proxmox Host
 LXC Container
    ↓
 Docker Compose Stack
-
+```
 
 # Запуск проекта
 
