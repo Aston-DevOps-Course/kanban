@@ -1,4 +1,4 @@
-# Task 7 — Reverse Proxy, HTTPS, Logging, Monitoring
+# Task 8 — CI/CD
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![Docker Compose](https://img.shields.io/badge/Docker_Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
@@ -8,32 +8,7 @@
 
 ---
 
-В данном задании реализована инфраструктура для Kanban-приложения с использованием Docker Compose.
-
-Состав системы:
-
-- Spring Boot backend
-- Angular frontend
-- Nginx reverse proxy
-- HTTPS
-- Load balancing frontend-контейнеров
-- Централизованный сбор логов
-- Централизованный сбор метрик
-- Grafana dashboards
-
-
-```text id="l7b6o8"
-task7/
-├── docker-compose.yml
-├── nginx/
-│   └── default.conf
-├── certs/
-├── monitoring/
-│   └── prometheus.yml
-├── logging/
-│   └── promtail-config.yml
-└── README.md
-```
+В данном задании реализован CI/CD пайплайн для приложения. 
 
 ---
 
@@ -47,352 +22,192 @@ https://github.com/Aston-DevOps-Course/kanban-frontend
 
 ---
 
-#  Настройка app.local
+---
 
-## Linux/macOS
+# Видео-презентация
 
-Открыть:
+Ссылка на видео-презентацию работы проекта:
 
-```bash id="qvq0v4"
-sudo nano /etc/hosts
-```
 
-## Windows
+---
+# Выполненные задачи по данному проекту (6-8)
 
-Открыть файл:
+## Task 6
 
-```text id="ylzjvj"
-C:\Windows\System32\drivers\etc\hosts
-```
+### Docker
 
-В обоих вариантах обавить строку:
+- Установлен Docker и Docker Compose
+- Созданы Dockerfile для backend и frontend приложений
+- Реализованы multi-stage сборки
+- Использованы best practices:
+  - минимальные базовые образы
+  - разделение build/runtime stages
+  - кеширование зависимостей
+  - `.dockerignore`
+  - запуск только необходимых артефактов
 
-```text id="4epp7h"
-127.0.0.1 app.local
-```
+### Docker Compose
+
+Реализован запуск:
+- PostgreSQL
+- Backend
+- 2 экземпляров frontend
+- Nginx load balancer
+
+Frontend работает через балансировщик Nginx.
 
 ---
 
-# Генерация HTTPS сертификата
+## Task 7
 
-Из папки `task7` выполнить:
+### Reverse Proxy
 
-```bash id="okfn6j"
-mkdir certs
-```
+Настроен Nginx:
 
-```bash id="t8j9sm"
-openssl req -x509 -nodes -days 365 \
--newkey rsa:2048 \
--keyout certs/app.local.key \
--out certs/app.local.crt
-```
+- `http://app.local/` → frontend
+- `http://app.local/api/` → backend
+
+### HTTPS
+
+Реализована работа HTTPS через self-signed SSL сертификаты.
+
+### Правильная очередность старта контейнеров
+
+Использованы:
+- `depends_on`
+- `healthcheck`
+
+### Централизованный сбор логов
+
+Добавлены:
+- Loki
+- Promtail
+
+Логи frontend и backend контейнеров централизованно собираются и доступны через Grafana.
+
+### Централизованный сбор метрик
+
+Добавлены:
+- Prometheus
+- cAdvisor
+
+Собираются:
+- CPU
+- RAM
+- network
+- container metrics
+
+### Grafana
+
+Настроены дашборды:
+- контейнеров
+- frontend/backend сервисов
+- Docker metrics
+- логов приложений
 
 ---
+
+# CI/CD Pipeline
+
+Для backend и frontend репозиториев реализован CI/CD pipeline через GitHub Actions.
+
+## Pipeline включает:
+
+### CI Stage
+
+При каждом `git push` в ветку `main` автоматически выполняется:
+
+- checkout репозитория
+- Docker build
+- Docker image tagging
+- push образа в Docker Hub
+
+### CD Stage
+
+После успешного push образа:
+
+- GitHub Actions подключается к Proxmox host по SSH
+- выполняется `pct exec` внутри LXC контейнера
+- внутри контейнера выполняется:
+  - `docker compose pull`
+  - `docker compose up -d`
+
+В результате обновление backend/frontend происходит автоматически после push изменений в репозиторий.
+
+---
+
+# Структура инфраструктуры
+
+```text
+Internet
+   ↓
+GitHub Actions
+   ↓
+Docker Hub
+   ↓
+Proxmox Host
+   ↓
+LXC Container
+   ↓
+Docker Compose Stack
+
 
 # Запуск проекта
 
-Из папки `task7`:
+```bash
+mkdir -p /opt/kanban
+cd /opt/kanban
 
-```bash id="f0s8yb"
-docker compose up --build
+git clone https://github.com/Aston-DevOps-Course/kanban-backend.git
+git clone https://github.com/Aston-DevOps-Course/kanban-frontend.git
+git clone https://github.com/Aston-DevOps-Course/kanban-main.git task7```
+
+## Запуск инфраструктуры
+
+```bash
+cd /opt/kanban/task7
+docker compose up -d
 ```
 
 ---
 
 # Доступ к сервисам
 
-## Frontend
-
-```text id="lkrvsz"
-https://app.local
-```
-
-## Backend API
-
-```text id="y7qv8w"
-https://app.local/api/
-```
-
-## Grafana
-
-```text id="4x7o5k"
-http://localhost:3000
-```
-
-## Prometheus
-
-```text id="jfjmr8"
-http://localhost:9090
-```
-
-## cAdvisor
-
-```text id="d6mmtg"
-http://localhost:8088
-```
+| Сервис      | Адрес                                          |
+| ----------- | ---------------------------------------------- |
+| Frontend    | [https://app.local](https://app.local)         |
+| Backend API | [https://app.local/api](https://app.local/api) |
+| Grafana     | http://SERVER_IP:3000                          |
+| Prometheus  | http://SERVER_IP:9090                          |
+| Loki        | http://SERVER_IP:3100                          |
 
 ---
 
-# Load Balancing
+# Grafana
 
-Frontend работает в двух экземплярах:
+## Вход
 
-* frontend1
-* frontend2
-
-Nginx распределяет запросы между контейнерами через upstream.
-
----
-
-# HTTPS
-
-Nginx настроен на HTTPS:
-
-* HTTP автоматически перенаправляется на HTTPS
-* используются self-signed сертификаты
-
----
-
-# Очередность запуска контейнеров
-
-1. PostgreSQL
-2. Backend
-3. Frontend контейнеры
-4. Nginx
-5. Monitoring stack
-
----
-
-# Централизованный сбор логов
-
-## Используемые сервисы
-
-* Loki
-* Promtail
-
-## Как работает
-
-1. Docker контейнеры записывают логи
-2. Promtail считывает Docker logs
-3. Loki хранит логи
-4. Grafana отображает логи
-
----
-
-# Централизованный сбор метрик
-
-## Используемые сервисы
-
-* cAdvisor
-* Prometheus
-* Grafana
-
-## Как работает
-
-1. cAdvisor собирает метрики контейнеров
-2. Prometheus periodically scrape metrics
-3. Grafana визуализирует метрики
-
----
-
-# Настройка Grafana
-
-## Первый вход
-
-Открыть:
-
-```text id="0rffaw"
-http://localhost:3000
-```
-
-Стандартные данные:
-
-```text id="4lv8qf"
+```text
 login: admin
 password: admin
 ```
 
-После первого входа Grafana предложит сменить пароль.
-
 ---
 
-# Добавление Prometheus datasource
+# Автоматическое обновление приложения
 
-## Перейти:
+После внесения изменений в backend/frontend код:
 
-```text id="knud14"
-Connections → Data sources → Add data source
+```bash
+git add .
+git commit -m "update"
+git push
 ```
 
-Выбрать:
+GitHub Actions автоматически:
 
-```text id="od3e4o"
-Prometheus
-```
+1. собирает Docker image
+2. публикует image в Docker Hub
+3. выполняет deployment внутри LXC контейнера
+4. обновляет контейнеры через Docker Compose
 
-URL:
-
-```text id="myq58x"
-http://prometheus:9090
-```
-
-Нажать:
-
-```text id="zrb7pw"
-Save & Test
-```
-
----
-
-# Добавление Loki datasource
-
-## Перейти:
-
-```text id="6c05fw"
-Connections → Data sources → Add data source
-```
-
-Выбрать:
-
-```text id="ep6qk7"
-Loki
-```
-
-URL:
-
-```text id="7utdwy"
-http://loki:3100
-```
-
-Нажать:
-
-```text id="3oy2sd"
-Save & Test
-```
-
----
-
-# Создание Dashboard для метрик
-
-## Перейти:
-
-```text id="89r9yh"
-Dashboards → New Dashboard
-```
-
-## Нажать:
-
-```text id="4b4lph"
-Add Visualization
-```
-
-## Выбрать datasource:
-
-```text id="7p8z5f"
-Prometheus
-```
-
----
-
-# Примеры метрик
-
-## CPU usage контейнеров
-
-```text id="brtxkz"
-rate(container_cpu_usage_seconds_total[1m])
-```
-
-## Memory usage
-
-```text id="jlwmxh"
-container_memory_usage_bytes
-```
-
-## Network traffic
-
-```text id="l6fg4h"
-rate(container_network_receive_bytes_total[1m])
-```
-
-## Container filesystem usage
-
-```text id="2rjgwt"
-container_fs_usage_bytes
-```
-
----
-
-# Создание Dashboard для логов
-
-## Создать новую visualization
-
-Datasource:
-
-```text id="9bx6fh"
-Loki
-```
-
----
-
-# Примеры Loki запросов
-
-## Все логи
-
-```text id="s8k9bl"
-{job="docker"}
-```
-
-## Логи backend
-
-```text id="7vtgtm"
-{container="kanban-app"}
-```
-
-## Логи frontend
-
-```text id="m7r87w"
-{container="frontend1"}
-```
-
----
-
-# Использованные best practices
-
-## Docker
-
-* multi-stage builds
-* lightweight images
-* isolated containers
-* named volumes
-
-## Infrastructure
-
-* reverse proxy
-* HTTPS
-* load balancing
-* centralized logging
-* centralized monitoring
-
-## Monitoring
-
-* metrics separation
-* log aggregation
-* observability stack
-
----
-
-# Итог:
-
-Реализована production-like инфраструктура:
-
-* reverse proxy
-* HTTPS
-* frontend load balancing
-* централизованные логи
-* централизованные метрики
-* monitoring stack
-* Grafana dashboards
-* orchestration через Docker Compose
-
-```
