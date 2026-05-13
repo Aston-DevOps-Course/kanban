@@ -158,7 +158,8 @@ cd /opt/kanban
 
 git clone https://github.com/Aston-DevOps-Course/kanban-backend.git
 git clone https://github.com/Aston-DevOps-Course/kanban-frontend.git
-git clone https://github.com/Aston-DevOps-Course/kanban-main.git task7```
+git clone https://github.com/Aston-DevOps-Course/kanban-main.git task7
+```
 
 ## Запуск инфраструктуры
 
