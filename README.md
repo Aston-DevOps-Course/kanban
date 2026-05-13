@@ -209,7 +209,7 @@ GitHub Actions автоматически:
 3. выполняет deployment внутри LXC контейнера
 4. обновляет контейнеры через Docker Compose
 
-### backend.yml:
+### backend.yml
 ```yaml
 name: Backend CI/CD
 
