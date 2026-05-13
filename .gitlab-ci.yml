@@ -1,0 +1,11 @@
+stages:
+  - deploy
+
+deploy:
+  stage: deploy
+  tags:
+    - docker
+
+  script:
+    - docker compose pull
+    - docker compose up -d
